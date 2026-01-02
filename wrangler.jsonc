@@ -1,0 +1,10 @@
+{
+  "name": "exa-mcp-service",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-12-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENABLED_TOOLS": "web_search_exa,get_code_context_exa",
+    "DEBUG": "false"
+  }
+}

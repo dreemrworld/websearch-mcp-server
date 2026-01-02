@@ -37,7 +37,10 @@
     "watch": "tsc --watch",
     "dev": "npx @smithery/cli@latest dev",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "prepublishOnly": "npm run build:stdio"
+    "prepublishOnly": "npm run build:stdio",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy",
+    "cf:secret": "wrangler secret put EXA_API_KEY"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
@@ -48,8 +51,11 @@
   "devDependencies": {
     "@smithery/cli": "^1.4.4",
     "@types/node": "^20.11.24",
+    "agents": "^0.3.3",
+    "agents-sdk": "^1.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "wrangler": "^4.54.0"
   },
   "engines": {
     "node": ">=18.0.0"

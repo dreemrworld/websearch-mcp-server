@@ -1,0 +1,8 @@
+# Add this to your chatbot's wrangler.toml
+[[services]]
+binding = "EXA_MCP"
+service = "exa-mcp-service"
+
+# Alternative format:
+[services.exa_mcp]
+service = "exa-mcp-service"

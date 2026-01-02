@@ -45,7 +45,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
 
         const searchRequest: ExaSearchRequest = {
           query: searchQuery,
-          type: "neural",
+          type: "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           contents: {
             text: {
@@ -120,4 +120,4 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
       }
     }
   );
-}  
+}
