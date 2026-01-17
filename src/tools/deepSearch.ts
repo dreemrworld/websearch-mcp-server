@@ -5,7 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
-import { convertToMarkdown } from "../utils/markdown.js";
+import { convertToMarkdown, formatSearchResultsToMarkdown } from "../utils/markdown.js";
 
 interface Env {
   AI?: any; // Cloudflare Workers AI binding
@@ -71,7 +71,7 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
         checkpoint('deep_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.context) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('deep_search_complete');
           return {
@@ -82,10 +82,14 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
           };
         }
 
-        logger.log(`Context received with ${response.data.context.length} characters`);
+        logger.log(`Received ${response.data.results.length} search results`);
 
-        // Convert search results to markdown for better readability
-        const markdownContent = await convertToMarkdown(response.data.context, env, 'text/html');
+        // Format search results into clean markdown for chatbot consumption
+        const markdownContent = await formatSearchResultsToMarkdown(
+          response.data.results,
+          objective,
+          env
+        );
 
         const result = {
           content: [{
