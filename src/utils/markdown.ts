@@ -1,9 +1,25 @@
 /**
  * Utility functions for converting content to markdown using Cloudflare Workers AI
+ * Follows Cloudflare Workers AI best practices for markdown conversion
  */
 
 interface Env {
   AI?: any; // Cloudflare Workers AI binding (optional)
+}
+
+// Cloudflare Workers AI interfaces (following official documentation)
+interface MarkdownDocument {
+  name: string;
+  blob: Blob;
+}
+
+interface ConversionResult {
+  name: string;
+  format: 'markdown' | 'error';
+  mimetype: string;
+  tokens?: number;
+  data?: string;
+  error?: string;
 }
 
 interface ExaSearchResult {
@@ -60,6 +76,7 @@ function cleanHtmlContent(html: string): string {
 
 /**
  * Convert text content to markdown using Cloudflare Workers AI toMarkdown
+ * Follows Cloudflare Workers AI best practices for document conversion
  * @param content The text content to convert
  * @param env Cloudflare Workers environment with AI binding
  * @param mimeType MIME type of the content (defaults to 'text/html')
@@ -85,25 +102,39 @@ export async function convertToMarkdown(
       processedContent = cleanHtmlContent(content);
     }
 
-    const markdownResult = await env.AI.toMarkdown([
-      {
-        name: 'content',
-        blob: new Blob([processedContent], { type: mimeType })
-      }
-    ]);
+    // Create proper MarkdownDocument following Cloudflare best practices
+    const markdownDocument: MarkdownDocument = {
+      name: 'web-content',
+      blob: new Blob([processedContent], { type: mimeType })
+    };
 
-    if (markdownResult && markdownResult.length > 0) {
-      const conversion = markdownResult[0];
+    // Call toMarkdown with proper document array
+    const results = await env.AI.toMarkdown([markdownDocument]);
+
+    if (results && results.length > 0) {
+      const conversion: ConversionResult = results[0];
+
+      // Handle successful conversion
       if (conversion.format === 'markdown' && conversion.data) {
+        // Log token usage for monitoring (best practice)
+        if (conversion.tokens !== undefined) {
+          console.log(`Markdown conversion: ${conversion.tokens} tokens used for ${conversion.mimetype}`);
+        }
         return conversion.data;
+      }
+
+      // Handle conversion errors
+      if (conversion.format === 'error') {
+        console.error('Markdown conversion failed:', conversion.error);
+        return content; // Fallback to original content
       }
     }
 
-    // Return original content if conversion doesn't produce valid markdown
+    // Return original content if conversion doesn't produce valid results
     return content;
   } catch (error) {
     console.error('Markdown conversion error:', error);
-    // Return original content on error
+    // Return original content on error (graceful degradation)
     return content;
   }
 }
