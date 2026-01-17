@@ -105,37 +105,37 @@ export default {
     const registeredTools: string[] = [];
 
     if (shouldRegisterTool('web_search_exa')) {
-      registerWebSearchTool(server, normalizedConfig);
+      registerWebSearchTool(server, normalizedConfig, env);
       registeredTools.push('web_search_exa');
     }
 
     if (shouldRegisterTool('deep_search_exa')) {
-      registerDeepSearchTool(server, normalizedConfig);
+      registerDeepSearchTool(server, normalizedConfig, env);
       registeredTools.push('deep_search_exa');
     }
 
     if (shouldRegisterTool('company_research_exa')) {
-      registerCompanyResearchTool(server, normalizedConfig);
+      registerCompanyResearchTool(server, normalizedConfig, env);
       registeredTools.push('company_research_exa');
     }
 
     if (shouldRegisterTool('crawling_exa')) {
-      registerCrawlingTool(server, normalizedConfig);
+      registerCrawlingTool(server, normalizedConfig, env);
       registeredTools.push('crawling_exa');
     }
 
     if (shouldRegisterTool('linkedin_search_exa')) {
-      registerLinkedInSearchTool(server, normalizedConfig);
+      registerLinkedInSearchTool(server, normalizedConfig, env);
       registeredTools.push('linkedin_search_exa');
     }
 
     if (shouldRegisterTool('deep_researcher_start')) {
-      registerDeepResearchStartTool(server, normalizedConfig);
+      registerDeepResearchStartTool(server, normalizedConfig, env);
       registeredTools.push('deep_researcher_start');
     }
 
     if (shouldRegisterTool('deep_researcher_check')) {
-      registerDeepResearchCheckTool(server, normalizedConfig);
+      registerDeepResearchCheckTool(server, normalizedConfig, env);
       registeredTools.push('deep_researcher_check');
     }
 
@@ -227,6 +227,7 @@ interface Env {
   EXA_API_KEY?: string;
   ENABLED_TOOLS?: string;
   DEBUG?: string;
+  AI: any; // Cloudflare Workers AI binding
 }
 
 interface ExecutionContext {

@@ -5,8 +5,13 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
+import { convertToMarkdown } from "../utils/markdown.js";
 
-export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+interface Env {
+  AI?: any; // Cloudflare Workers AI binding
+}
+
+export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string }, env?: Env): void {
   server.tool(
     "deep_search_exa",
     "Searches the web and return results in a natural language format.",
@@ -78,11 +83,14 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
         }
 
         logger.log(`Context received with ${response.data.context.length} characters`);
-        
+
+        // Convert search results to markdown for better readability
+        const markdownContent = await convertToMarkdown(response.data.context, env, 'text/html');
+
         const result = {
           content: [{
             type: "text" as const,
-            text: response.data.context
+            text: markdownContent
           }]
         };
         
@@ -119,4 +127,3 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
     }
   );
 }
-

@@ -5,8 +5,13 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
+import { convertJsonToMarkdown } from "../utils/markdown.js";
 
-export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+interface Env {
+  AI?: any; // Cloudflare Workers AI binding
+}
+
+export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string }, env?: Env): void {
   server.tool(
     "linkedin_search_exa",
     "Search LinkedIn profiles and companies using Exa AI - finds professional profiles, company pages, and business-related content on LinkedIn. Useful for networking, recruitment, and business research.",
@@ -80,11 +85,14 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         }
 
         logger.log(`Found ${response.data.results.length} LinkedIn results`);
-        
+
+        // Convert structured LinkedIn data to markdown for better readability
+        const markdownContent = await convertJsonToMarkdown(response.data, env);
+
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: markdownContent
           }]
         };
         

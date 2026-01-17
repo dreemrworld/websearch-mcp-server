@@ -5,8 +5,13 @@ import { API_CONFIG } from "./config.js";
 import { DeepResearchRequest, DeepResearchStartResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
+import { convertJsonToMarkdown } from "../utils/markdown.js";
 
-export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string }): void {
+interface Env {
+  AI?: any; // Cloudflare Workers AI binding
+}
+
+export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string }, env?: Env): void {
   server.tool(
     "deep_researcher_start",
     "Start a comprehensive AI-powered deep research task for complex queries. This tool initiates an intelligent agent that performs extensive web searches, crawls relevant pages, analyzes information, and synthesizes findings into a detailed research report. The agent thinks critically about the research topic and provides thorough, well-sourced answers. Use this for complex research questions that require in-depth analysis rather than simple searches. After starting a research task, IMMEDIATELY use deep_researcher_check with the returned task ID to monitor progress and retrieve results.",
@@ -67,18 +72,21 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
           };
         }
 
+        // Convert structured research start data to markdown for better readability
+        const markdownContent = await convertJsonToMarkdown({
+          success: true,
+          taskId: response.data.id,
+          model: researchRequest.model,
+          instructions: instructions,
+          outputSchema: response.data.outputSchema,
+          message: `Deep research task started successfully with ${researchRequest.model} model. IMMEDIATELY use deep_researcher_check with task ID '${response.data.id}' to monitor progress. Keep checking every few seconds until status is 'completed' to get the research results.`,
+          nextStep: `Call deep_researcher_check with taskId: "${response.data.id}"`
+        }, env);
+
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify({
-              success: true,
-              taskId: response.data.id,
-              model: researchRequest.model,
-              instructions: instructions,
-              outputSchema: response.data.outputSchema,
-              message: `Deep research task started successfully with ${researchRequest.model} model. IMMEDIATELY use deep_researcher_check with task ID '${response.data.id}' to monitor progress. Keep checking every few seconds until status is 'completed' to get the research results.`,
-              nextStep: `Call deep_researcher_check with taskId: "${response.data.id}"`
-            }, null, 2)
+            text: markdownContent
           }]
         };
         
@@ -114,4 +122,4 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
       }
     }
   );
-}  
+}

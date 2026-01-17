@@ -4,9 +4,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { checkpoint } from "agnost"
+import { checkpoint } from "agnost";
+import { convertToMarkdown } from "../utils/markdown.js";
 
-export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+interface Env {
+  AI: any; // Cloudflare Workers AI binding
+}
+
+export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }, env?: Env): void {
   server.tool(
     "web_search_exa",
     "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
@@ -78,11 +83,14 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
         }
 
         logger.log(`Context received with ${response.data.context.length} characters`);
-        
+
+        // Convert search results to markdown for better readability
+        const markdownContent = await convertToMarkdown(response.data.context, env, 'text/html');
+
         const result = {
           content: [{
             type: "text" as const,
-            text: response.data.context
+            text: markdownContent
           }]
         };
         
@@ -118,4 +126,4 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       }
     }
   );
-}  
+}

@@ -5,8 +5,13 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
+import { convertJsonToMarkdown } from "../utils/markdown.js";
 
-export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+interface Env {
+  AI?: any; // Cloudflare Workers AI binding
+}
+
+export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string }, env?: Env): void {
   server.tool(
     "company_research_exa",
     "Research companies using Exa AI - finds comprehensive information about businesses, organizations, and corporations. Provides insights into company operations, news, financial information, and industry analysis.",
@@ -70,11 +75,14 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
         }
 
         logger.log(`Found ${response.data.results.length} company research results`);
-        
+
+        // Convert structured company data to markdown for better readability
+        const markdownContent = await convertJsonToMarkdown(response.data, env);
+
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: markdownContent
           }]
         };
         
@@ -110,4 +118,4 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
       }
     }
   );
-}  
+}

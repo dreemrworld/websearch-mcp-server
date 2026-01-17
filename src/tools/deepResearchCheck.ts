@@ -5,13 +5,18 @@ import { API_CONFIG } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
+import { convertJsonToMarkdown } from "../utils/markdown.js";
 
 // Helper function to create a delay
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string }): void {
+interface Env {
+  AI?: any; // Cloudflare Workers AI binding
+}
+
+export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string }, env?: Env): void {
   server.tool(
     "deep_researcher_check",
     "Check the status and retrieve results of a deep research task. This tool monitors the progress of an AI agent that performs comprehensive web searches, analyzes multiple sources, and synthesizes findings into detailed research reports. The tool includes a built-in 5-second delay before checking to allow processing time. IMPORTANT: You must call this tool repeatedly (poll) until the status becomes 'completed' to get the final research results. When status is 'running', wait a few seconds and call this tool again with the same task ID.",
@@ -65,11 +70,11 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
         }
 
         // Format the response based on status
-        let resultText: string;
-        
+        let resultData: any;
+
         if (response.data.status === 'completed') {
           // Task completed - return only the essential research report to avoid context overflow
-          resultText = JSON.stringify({
+          resultData = {
             success: true,
             status: response.data.status,
             taskId: response.data.id,
@@ -77,39 +82,42 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
             timeMs: response.data.timeMs,
             model: response.data.model,
             message: "🎉 Deep research completed! Here's your comprehensive research report."
-          }, null, 2);
+          };
           logger.log("Research completed successfully");
         } else if (response.data.status === 'running') {
           // Task still running - return minimal status to avoid filling context window
-          resultText = JSON.stringify({
+          resultData = {
             success: true,
             status: response.data.status,
             taskId: response.data.id,
             message: "🔄 Research in progress. Continue polling...",
             nextAction: "Call deep_researcher_check again with the same task ID"
-          }, null, 2);
+          };
           logger.log("Research still in progress");
         } else if (response.data.status === 'failed') {
           // Task failed
-          resultText = JSON.stringify({
+          resultData = {
             success: false,
             status: response.data.status,
             taskId: response.data.id,
             createdAt: new Date(response.data.createdAt).toISOString(),
             instructions: response.data.instructions,
             message: "❌ Deep research task failed. Please try starting a new research task with different instructions."
-          }, null, 2);
+          };
           logger.log("Research task failed");
         } else {
           // Unknown status
-          resultText = JSON.stringify({
+          resultData = {
             success: false,
             status: response.data.status,
             taskId: response.data.id,
             message: `⚠️ Unknown status: ${response.data.status}. Continue polling or restart the research task.`
-          }, null, 2);
+          };
           logger.log(`Unknown status: ${response.data.status}`);
         }
+
+        // Convert structured research data to markdown for better readability
+        const resultText = await convertJsonToMarkdown(resultData, env);
 
         const result = {
           content: [{
@@ -129,15 +137,16 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
           if (error.response?.status === 404) {
             const errorData = error.response.data as DeepResearchErrorResponse;
             logger.log(`Task not found: ${taskId}`);
+            const errorMarkdown = await convertJsonToMarkdown({
+              success: false,
+              error: "Task not found",
+              taskId: taskId,
+              message: "🚫 The specified task ID was not found. Please check the ID or start a new research task using deep_researcher_start."
+            }, env);
             return {
               content: [{
                 type: "text" as const,
-                text: JSON.stringify({
-                  success: false,
-                  error: "Task not found",
-                  taskId: taskId,
-                  message: "🚫 The specified task ID was not found. Please check the ID or start a new research task using deep_researcher_start."
-                }, null, 2)
+                text: errorMarkdown
               }],
               isError: true,
             };
@@ -168,4 +177,4 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
       }
     }
   );
-}  
+}
